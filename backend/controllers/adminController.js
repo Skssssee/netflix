@@ -7,6 +7,17 @@ function cleanTitleForSEO(title, categoryName) {
   if (!title) return 'Untitled Video';
   let clean = title.replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm|3gp)$/i, '');
   clean = clean.replace(/[\._\-]/g, ' ');
+  
+  // Strip parentheses and brackets containing release details
+  clean = clean.replace(/\[[^\]]*(dual|audio|esub|multi|sub|dub|hindi|english|web|h\-)[^\]]*\]/gi, '');
+  clean = clean.replace(/\([^\)]*(dual|audio|esub|multi|sub|dub|hindi|english|web|h\-)[^\)]*\)/gi, '');
+  
+  // Strip standalone common keywords
+  clean = clean.replace(/\b(esubs?|dual[- ]audio|multi[- ]audio|dubbed|video[- ]file|hindi|english|org|original|web[- ]?rip|bluray|clean|org[- ]dual|dual|audio|hdts|camrip|telesync|cam|ts)\b/gi, '');
+  
+  // Remove remaining brackets/parentheses, colons, hyphens
+  clean = clean.replace(/[\(\)\[\]\{\}\-\:]/g, ' ');
+  
   const ripTags = [
     /\b\d{3,4}p\b/gi,
     /\bx26[45]\b/gi,
@@ -20,16 +31,27 @@ function cleanTitleForSEO(title, categoryName) {
     /\bbrrip\b/gi,
     /\bdvd\b/gi,
     /\bdvdrip\b/gi,
-    /\b[12]\d{3}\b/gi
+    /\b[12]\d{3}\b/gi,
+    /\bhdts\b/gi,
+    /\bhd-ts\b/gi,
+    /\bcamrip\b/gi,
+    /\btelesync\b/gi,
+    /\bts\b/gi
   ];
   ripTags.forEach(regex => {
     clean = clean.replace(regex, '');
   });
+  
   clean = clean.replace(/\s+/g, ' ').trim();
+  
+  // Strip trailing short word artifacts (like "Or", "H", "Org", "And") from the end of the title
+  clean = clean.replace(/\s+\b[a-zA-Z]{1,3}\b\s*$/g, '').trim();
+
   clean = clean.split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
-  if (categoryName && categoryName !== 'Uncategorized') {
+    
+  if (categoryName && !['Uncategorized', 'Video file', 'Video', 'Videos'].includes(categoryName)) {
     const cleanCat = categoryName.replace(/Videos|Clips|Stories|Highlights/gi, '').trim();
     if (clean && !clean.toLowerCase().includes(cleanCat.toLowerCase())) {
       clean = `${clean} - ${categoryName}`;
