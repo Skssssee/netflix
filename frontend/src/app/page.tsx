@@ -242,6 +242,7 @@ export default function Home() {
             </div>
           )}
         </section>
+
       </main>
 
       <Footer socials={homeData.socials} />
