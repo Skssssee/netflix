@@ -11,6 +11,29 @@ import Footer from '@/components/Footer';
 // Load CustomVideoPlayer dynamically to avoid SSR window issues
 const CustomVideoPlayer = dynamic(() => import('@/components/CustomVideoPlayer'), { ssr: false });
 
+function formatDuration(duration: string): string {
+  if (!duration) return '0m';
+  const clean = duration.replace(/s$/, '').trim();
+  const num = parseFloat(clean);
+  if (!isNaN(num)) {
+    const minutes = Math.floor(num / 60);
+    const seconds = Math.round(num % 60);
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  }
+  if (duration.includes('m') && duration.includes('s')) {
+    const match = duration.match(/(\d+)m\s+([\d\.]+)s/);
+    if (match) {
+      const minutes = match[1];
+      const seconds = Math.round(parseFloat(match[2]));
+      return `${minutes}m ${seconds}s`;
+    }
+  }
+  return duration;
+}
+
 export default function MoviePlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const movieId = unwrappedParams.id;
@@ -141,7 +164,7 @@ export default function MoviePlayerPage({ params }: { params: Promise<{ id: stri
         <div>
           <h1 className="text-2xl md:text-4xl font-outfit font-bold mb-3 tracking-tight">{movie.title}</h1>
           <div className="flex flex-wrap gap-3 text-sm mb-6">
-            <span className="bg-white/10 px-3 py-1 rounded-full text-white font-medium">{movie.duration}</span>
+            <span className="bg-white/10 px-3 py-1 rounded-full text-white font-medium">{formatDuration(movie.duration)}</span>
             <span className="bg-red-600/20 text-red-400 px-3 py-1 rounded-full font-medium">{movie.category?.name}</span>
             <span className="bg-white/10 px-3 py-1 rounded-full text-gray-300">{movie.views} views</span>
           </div>

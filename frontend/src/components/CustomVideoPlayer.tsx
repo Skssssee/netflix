@@ -204,6 +204,49 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
           left: -8% !important;
           pointer-events: none !important;
         }
+        /* Make progress bar full width on top of controls (YouTube style) */
+        .plyr__controls {
+          flex-wrap: wrap !important;
+          padding: 8px 12px !important;
+          position: relative !important;
+        }
+        .plyr__progress {
+          flex-basis: 100% !important;
+          order: -1 !important;
+          margin-bottom: 8px !important;
+          width: 100% !important;
+        }
+        /* Position volume, pip, and settings at the top right of the player */
+        .plyr__volume,
+        .plyr__controls [data-plyr="pip"],
+        .plyr__controls [data-plyr="settings"] {
+          position: absolute !important;
+          top: 15px !important;
+          z-index: 10 !important;
+          background: rgba(0, 0, 0, 0.5) !important;
+          border-radius: 50% !important;
+          transition: opacity 0.3s ease, transform 0.3s ease !important;
+        }
+        /* Hide them when Plyr controls are hidden */
+        .plyr--hide-controls .plyr__volume,
+        .plyr--hide-controls .plyr__controls [data-plyr="pip"],
+        .plyr--hide-controls .plyr__controls [data-plyr="settings"] {
+          opacity: 0 !important;
+          pointer-events: none !important;
+          transform: translateY(-10px) !important;
+        }
+        /* Position them neatly in the top right */
+        .plyr__controls [data-plyr="settings"] {
+          right: 15px !important;
+        }
+        .plyr__controls [data-plyr="pip"] {
+          right: 60px !important;
+        }
+        .plyr__volume {
+          right: 105px !important;
+          border-radius: 20px !important;
+          padding-right: 8px !important;
+        }
       `}} />
       <div ref={containerRef} className="w-full h-full" />
     </div>
