@@ -131,6 +131,15 @@ export default function MoviePlayerPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": movie.title,
+      "description": movie.description || "Watch free streaming video on Mizofy Movies.",
+      "thumbnailUrl": movie.thumbnailUrl || "https://images.unsplash.com/photo-1616530940355-351fabd9524b",
+      "uploadDate": movie.createdAt ? new Date(movie.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      "contentUrl": videoSrc
+    })}} />
     <Header />
     <div className="min-h-screen bg-black text-white flex flex-col font-poppins pt-16">
       {/* Header */}

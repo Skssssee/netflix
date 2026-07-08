@@ -26,6 +26,7 @@ exports.getHomeData = async (req, res) => {
     
     const socials = await SocialMedia.find({ isActive: true });
     
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
     res.json({ sliders, categories, socials });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,6 +131,7 @@ exports.getMovies = async (req, res) => {
 
     const total = await Movie.countDocuments(query);
 
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
     res.json({
       movies,
       page,
