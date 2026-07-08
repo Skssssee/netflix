@@ -67,22 +67,54 @@ exports.getCategoryMovies = async (req, res) => {
   }
 };
 
+const ADULT_KEYWORDS = ['porn', 'sex', 'xxx', 'nsfw', 'erotica', 'milf', 'cougar', 'hentai', 'webcam', 'audio erotica', 'threesome', 'adult'];
+
 exports.getMovies = async (req, res) => {
   try {
     const { categoryId, search } = req.query;
+    const safeSearch = req.query.safeSearch === 'true'; // Set default or check parameter
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
     const skip = (page - 1) * limit;
+
+    // If SafeSearch is enabled and search query contains restricted keywords, block search
+    if (safeSearch && search && search.trim() !== '') {
+      const lowerSearch = search.toLowerCase();
+      const hasBlockedKeyword = ADULT_KEYWORDS.some(kw => lowerSearch.includes(kw));
+      if (hasBlockedKeyword) {
+        return res.json({
+          movies: [],
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+          blocked: true,
+          message: 'This search query has been filtered by SafeSearch restrictions.'
+        });
+      }
+    }
 
     const query = {};
     if (categoryId && categoryId !== 'all') {
       query.category = categoryId;
     }
+    
     if (search && search.trim() !== '') {
       query.$or = [
         { title: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
         { description: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
       ];
+    }
+
+    // Exclude any mature content matching adult keywords if SafeSearch is active
+    if (safeSearch) {
+      const exclusionPattern = ADULT_KEYWORDS.join('|');
+      const exclusionRegex = new RegExp(exclusionPattern, 'i');
+      
+      // Merge with search constraints or apply globally
+      query.title = { ...query.title, $not: exclusionRegex };
+      query.description = { ...query.description, $not: exclusionRegex };
     }
 
     const movies = await Movie.find(query)

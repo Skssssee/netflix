@@ -17,6 +17,7 @@ export default function Home() {
   const [searchVal, setSearchVal] = useState(''); // current typing value
   const [activeSearch, setActiveSearch] = useState(''); // actual search executed
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [safeSearch, setSafeSearch] = useState(true); // SafeSearch content filter
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMovies, setTotalMovies] = useState(0);
@@ -48,7 +49,8 @@ export default function Home() {
             categoryId: selectedCategory,
             search: activeSearch,
             page,
-            limit: 50
+            limit: 50,
+            safeSearch: safeSearch ? 'true' : 'false'
           }
         });
         setMovies(res.data.movies);
@@ -61,7 +63,7 @@ export default function Home() {
       }
     };
     fetchMoviesData();
-  }, [selectedCategory, activeSearch, page]);
+  }, [selectedCategory, activeSearch, page, safeSearch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +106,7 @@ export default function Home() {
         {/* Search & Category Chips Container */}
         <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 space-y-6">
           {/* YouTube-style Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="flex justify-center max-w-xl mx-auto">
+          <form onSubmit={handleSearchSubmit} className="flex flex-col items-center justify-center max-w-xl mx-auto gap-3">
             <div className="flex w-full bg-gray-900 border border-gray-700 rounded-full overflow-hidden focus-within:border-red-600 transition">
               <input
                 type="text"
@@ -116,6 +118,18 @@ export default function Home() {
               <button type="submit" className="bg-gray-800 border-l border-gray-700 px-6 hover:bg-gray-700 text-gray-300 transition flex items-center justify-center">
                 <Search className="w-5 h-5" />
               </button>
+            </div>
+            
+            {/* SafeSearch Toggle */}
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <label htmlFor="safe-search" className="cursor-pointer select-none font-medium hover:text-white transition">SafeSearch Content Filter</label>
+              <input 
+                id="safe-search"
+                type="checkbox" 
+                checked={safeSearch} 
+                onChange={(e) => { setPage(1); setSafeSearch(e.target.checked); }}
+                className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-red-600 focus:ring-red-600 focus:ring-offset-0 cursor-pointer"
+              />
             </div>
           </form>
 
