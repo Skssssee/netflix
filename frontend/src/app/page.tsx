@@ -243,6 +243,38 @@ export default function Home() {
           )}
         </section>
 
+        {/* SEO Directory & Dynamic Keywords Tag Cloud from Database Categories */}
+        <section aria-label="SEO Directory" className="max-w-7xl mx-auto px-4 md:px-8 mt-20 pt-10 border-t border-gray-800/60 space-y-6">
+          <div className="bg-gray-900/40 p-6 rounded-2xl border border-gray-800/50">
+            <h3 className="text-lg font-outfit font-bold text-white/90 mb-4">Popular Search Directories</h3>
+            
+            {/* Dynamic Keywords/Backlinks Cloud */}
+            <div className="flex flex-wrap gap-2.5 mb-6">
+              {homeData.categories.map((cat: any) => (
+                <button
+                  key={cat._id}
+                  onClick={() => {
+                    handleCategorySelect(cat._id);
+                    window.scrollTo({ top: chipsRef.current?.offsetTop || 400, behavior: 'smooth' });
+                  }}
+                  className="text-xs bg-gray-850/60 hover:bg-red-600 hover:text-white border border-gray-850/50 hover:border-red-600 px-3 py-1.5 rounded-lg text-gray-400 transition"
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Crawlable SEO Text */}
+            <div className="text-xs text-gray-500 font-poppins space-y-3 leading-relaxed border-t border-gray-800/40 pt-4">
+              <p>
+                Welcome to Mizofy Movies, the top community directory to search, stream, and discover popular video series and regional dramas. Filter through high-volume descriptive genres and watch latest releases from our admin category directories.
+              </p>
+              <p>
+                Our community-driven indexing provides direct access to broad media types such as OTT web series, amateur creator videos, and lifestyle romance stories. Use our search directory to quickly filter specific category listings designed for maximum organic reach.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
       <Footer socials={homeData.socials} />
