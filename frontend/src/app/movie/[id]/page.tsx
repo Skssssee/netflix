@@ -10,7 +10,7 @@ async function getMovieData(id: string) {
   try {
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/$/, '');
     const res = await fetch(`${apiBase}/api/movies/${id}`, {
-      next: { revalidate: 3600 } // Cache API response for 1 hour to protect Koyeb backend
+      next: { revalidate: 5 } // Cache API response for 5 seconds to prevent backend surges but allow fast updates
     });
     if (!res.ok) return null;
     return await res.json();
