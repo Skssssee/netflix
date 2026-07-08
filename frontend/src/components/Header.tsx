@@ -14,6 +14,16 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const handleSearchClick = () => {
+    const searchInput = document.querySelector('input[placeholder*="Search movies"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      searchInput.focus();
+    } else {
+      window.location.href = '/?focusSearch=true';
+    }
+  };
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -42,7 +52,7 @@ export default function Header() {
 
         {/* Right icons */}
         <div className="flex items-center gap-4 shrink-0">
-          <button aria-label="Search" className="text-gray-300 hover:text-white transition p-1">
+          <button onClick={handleSearchClick} aria-label="Search" className="text-gray-300 hover:text-white transition p-1">
             <Search className="w-5 h-5" />
           </button>
           <button aria-label="Notifications" className="text-gray-300 hover:text-white transition p-1 hidden sm:block">

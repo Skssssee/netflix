@@ -39,6 +39,22 @@ export default function Home() {
     fetchHomeLayout();
   }, []);
 
+  // Focus search input if routed via Header search button
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('focusSearch') === 'true') {
+        const searchInput = document.querySelector('input[placeholder*="Search movies"]') as HTMLInputElement;
+        if (searchInput) {
+          setTimeout(() => {
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            searchInput.focus();
+          }, 350);
+        }
+      }
+    }
+  }, []);
+
   // Fetch paginated, filtered, searched movies
   useEffect(() => {
     const fetchMoviesData = async () => {

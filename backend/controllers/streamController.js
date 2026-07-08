@@ -219,13 +219,22 @@ const messageCache = new Map();
 const activeDownloads = new Set();
 
 function triggerBackgroundDownload(messageId, message) {
+  const document = message.media?.document;
+  if (!document) return;
+  
+  const fileSize = Number(document.size);
+  if (fileSize > 150 * 1024 * 1024) {
+    console.log(`[Cache Download] Skipping background cache for ${messageId} due to large size (${(fileSize / (1024*1024)).toFixed(1)} MB)`);
+    return;
+  }
+
   const cacheFilePath = path.join(cacheDir, `${messageId}.mp4`);
   if (activeDownloads.has(messageId) || fs.existsSync(cacheFilePath)) {
     return;
   }
   
   activeDownloads.add(messageId);
-  console.log(`[Cache Download] Starting background download for ${messageId}.mp4`);
+  console.log(`[Cache Download] Starting background download for ${messageId}.mp4 (${(fileSize / (1024*1024)).toFixed(1)} MB)`);
   
   const writeStream = fs.createWriteStream(cacheFilePath + '.tmp');
   
