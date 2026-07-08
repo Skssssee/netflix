@@ -349,19 +349,37 @@ exports.streamVideo = async (req, res) => {
         'Content-Type': 'video/mp4',
       });
 
+      // Align start offset to nearest 512KB block boundary (divisible by 524288) to satisfy Telegram requirements
+      const ALIGNMENT = 512 * 1024;
+      const alignedStart = Math.floor(start / ALIGNMENT) * ALIGNMENT;
+      const skipBytes = start - alignedStart;
+
       // Iteratively download chunks and stream to response
       let bytesSent = 0;
+      let skipped = 0;
       for await (const chunk of client.iterDownload({
         file: message.media,
-        offset: bigInt(start),
+        offset: bigInt(alignedStart),
         requestSize: 1024 * 1024, // 1MB chunks
       })) {
+        let processedChunk = chunk;
+        if (skipped < skipBytes) {
+          const neededToSkip = skipBytes - skipped;
+          if (chunk.length <= neededToSkip) {
+            skipped += chunk.length;
+            continue; // Skip this chunk entirely
+          } else {
+            processedChunk = chunk.slice(neededToSkip);
+            skipped = skipBytes;
+          }
+        }
+
         const remaining = chunkSize - bytesSent;
-        if (chunk.length <= remaining) {
-          res.write(chunk);
-          bytesSent += chunk.length;
+        if (processedChunk.length <= remaining) {
+          res.write(processedChunk);
+          bytesSent += processedChunk.length;
         } else {
-          res.write(chunk.slice(0, remaining));
+          res.write(processedChunk.slice(0, remaining));
           bytesSent += remaining;
         }
         
