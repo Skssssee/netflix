@@ -31,11 +31,13 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
 
     const isYouTube = src.includes('youtube.com') || src.includes('youtu.be');
     const isHls = src.includes('.m3u8');
+    
+    // Configured controls to HIDE sound/volume and settings/speed, keeping Play, Progress, Time, PIP, and Fullscreen.
+    // Enabled automatic looping (loop: { active: true }).
     const options: Plyr.Options = {
-      controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'],
-      settings: ['quality', 'speed'],
-      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }, // Explicitly configure speed to force settings gear menu to render
+      controls: ['play-large', 'play', 'progress', 'current-time', 'pip', 'fullscreen'],
       autoplay: true,
+      loop: { active: true },
       ratio: '16:9',
     };
 
@@ -50,7 +52,6 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
         container.appendChild(div);
 
         // Initialize Plyr on the native element
-        // Added &vq=large (480p) to the embed options to default YouTube to 480p quality
         const plyrInstance = new Plyr(div, {
           ...options,
           youtube: {
@@ -59,7 +60,8 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
             showinfo: 0,
             iv_load_policy: 3,
             modestbranding: 1,
-            vq: 'large' // Request 480p quality level
+            loop: 1, // Loop YouTube video
+            playlist: ytId // Required by YouTube iframe API to support looping a single video
           }
         });
         playerRef.current = plyrInstance;
@@ -68,6 +70,7 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
         video.src = src;
         video.playsInline = true;
         video.controls = true;
+        video.loop = true;
         container.appendChild(video);
         playerRef.current = new Plyr(video, options);
       }
@@ -75,15 +78,18 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
       const video = document.createElement('video');
       video.playsInline = true;
       video.controls = true;
+      video.loop = true; // Loop HTML5/HLS video natively
       video.className = 'plyr-react w-full h-full';
       if (poster) video.poster = poster;
       container.appendChild(video);
 
       if (isHls) {
         if (Hls.isSupported()) {
+          // Optimized for low-latency fast-start buffering
           const hls = new Hls({
             maxMaxBufferLength: 10,
-            enableWorker: true
+            enableWorker: true,
+            lowLatencyMode: true
           });
           hlsRef.current = hls;
           hls.loadSource(src);
@@ -92,19 +98,16 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             const levels = hls.levels; // Levels sorted by bitrate ascending
             
-            // 1. Find and restrict Hls.js auto-adaptive selection levels to [240, 480]
+            // Restrict auto quality levels to [240, 480]
             let minIndex = 0;
             let maxIndex = levels.length - 1;
 
-            // Find index of first level >= 240p
             for (let i = 0; i < levels.length; i++) {
               if (levels[i].height >= 240) {
                 minIndex = i;
                 break;
               }
             }
-
-            // Find index of last level <= 480p
             for (let i = levels.length - 1; i >= 0; i--) {
               if (levels[i].height <= 480) {
                 maxIndex = i;
@@ -112,44 +115,11 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
               }
             }
 
-            // Apply adaptive limits to Hls.js instance
             (hls as any).minAutoLevel = minIndex;
             (hls as any).maxAutoLevel = maxIndex;
 
-            // 2. Filter the UI qualities list to only show heights between 240 and 480
-            const qualities = Array.from(
-              new Set(
-                levels
-                  .filter((l) => l.height >= 240 && l.height <= 480)
-                  .map((l) => l.height)
-              )
-            ).sort((a, b) => b - a);
-
-            // If no qualities match the range, fallback to original levels list
-            const finalQualities = qualities.length > 0 ? qualities : Array.from(new Set(levels.map(l => l.height))).filter(h => h && h > 0).sort((a,b)=>b-a);
-            
-            // Add 'Auto' quality options
-            const plyrQualities = [0, ...finalQualities];
-
-            const hlsOptions = {
-              ...options,
-              quality: {
-                default: 0, // Auto
-                options: plyrQualities,
-                forced: true,
-                onChange: (newQuality: number) => {
-                  if (newQuality === 0) {
-                    hls.currentLevel = -1; // Auto (restricted within [240, 480] range)
-                  } else {
-                    const index = levels.findIndex((l) => l.height === newQuality);
-                    hls.currentLevel = index;
-                  }
-                },
-              },
-            };
-
-            // Instantiate Plyr with the quality levels capped inside the 240p-480p range
-            playerRef.current = new Plyr(video, hlsOptions);
+            // Instantiate Plyr with loop enabled and without speed/volume controls
+            playerRef.current = new Plyr(video, options);
           });
 
           hls.on(Hls.Events.ERROR, (event, data) => {
@@ -215,37 +185,7 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
           order: -1 !important;
           margin-bottom: 8px !important;
           width: 100% !important;
-        }
-        /* Position volume, pip, and settings at the top right of the player */
-        .plyr__volume,
-        .plyr__controls [data-plyr="pip"],
-        .plyr__controls [data-plyr="settings"] {
-          position: absolute !important;
-          top: 15px !important;
-          z-index: 10 !important;
-          background: rgba(0, 0, 0, 0.5) !important;
-          border-radius: 50% !important;
-          transition: opacity 0.3s ease, transform 0.3s ease !important;
-        }
-        /* Hide them when Plyr controls are hidden */
-        .plyr--hide-controls .plyr__volume,
-        .plyr--hide-controls .plyr__controls [data-plyr="pip"],
-        .plyr--hide-controls .plyr__controls [data-plyr="settings"] {
-          opacity: 0 !important;
-          pointer-events: none !important;
-          transform: translateY(-10px) !important;
-        }
-        /* Position them neatly in the top right */
-        .plyr__controls [data-plyr="settings"] {
-          right: 15px !important;
-        }
-        .plyr__controls [data-plyr="pip"] {
-          right: 60px !important;
-        }
-        .plyr__volume {
-          right: 105px !important;
-          border-radius: 20px !important;
-          padding-right: 8px !important;
+          flex-grow: 1 !important;
         }
       `}} />
       <div ref={containerRef} className="w-full h-full" />
