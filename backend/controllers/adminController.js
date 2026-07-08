@@ -3,6 +3,41 @@ const Movie = require('../models/Movie');
 const Slider = require('../models/Slider');
 const SocialMedia = require('../models/SocialMedia');
 
+function cleanTitleForSEO(title, categoryName) {
+  if (!title) return 'Untitled Video';
+  let clean = title.replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm|3gp)$/i, '');
+  clean = clean.replace(/[\._\-]/g, ' ');
+  const ripTags = [
+    /\b\d{3,4}p\b/gi,
+    /\bx26[45]\b/gi,
+    /\bh26[45]\b/gi,
+    /\bhevc\b/gi,
+    /\bweb[- ]?dl\b/gi,
+    /\bweb[- ]?rip\b/gi,
+    /\bhd[- ]?rip\b/gi,
+    /\bvd[- ]?rip\b/gi,
+    /\bbluray\b/gi,
+    /\bbrrip\b/gi,
+    /\bdvd\b/gi,
+    /\bdvdrip\b/gi,
+    /\b[12]\d{3}\b/gi
+  ];
+  ripTags.forEach(regex => {
+    clean = clean.replace(regex, '');
+  });
+  clean = clean.replace(/\s+/g, ' ').trim();
+  clean = clean.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  if (categoryName && categoryName !== 'Uncategorized') {
+    const cleanCat = categoryName.replace(/Videos|Clips|Stories|Highlights/gi, '').trim();
+    if (clean && !clean.toLowerCase().includes(cleanCat.toLowerCase())) {
+      clean = `${clean} - ${categoryName}`;
+    }
+  }
+  return clean;
+}
+
 // Categories
 exports.getCategories = async (req, res) => {
   try {
@@ -53,7 +88,12 @@ exports.getMovies = async (req, res) => {
 
 exports.createMovie = async (req, res) => {
   try {
-    const movie = new Movie(req.body);
+    const payload = { ...req.body };
+    if (payload.title) {
+      const category = await Category.findById(payload.category);
+      payload.title = cleanTitleForSEO(payload.title, category?.name);
+    }
+    const movie = new Movie(payload);
     await movie.save();
     res.status(201).json(movie);
   } catch (error) {
@@ -63,7 +103,12 @@ exports.createMovie = async (req, res) => {
 
 exports.updateMovie = async (req, res) => {
   try {
-    const movie = await Movie.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const payload = { ...req.body };
+    if (payload.title) {
+      const category = await Category.findById(payload.category);
+      payload.title = cleanTitleForSEO(payload.title, category?.name);
+    }
+    const movie = await Movie.findByIdAndUpdate(req.params.id, payload, { new: true });
     res.json(movie);
   } catch (error) {
     res.status(500).json({ error: error.message });

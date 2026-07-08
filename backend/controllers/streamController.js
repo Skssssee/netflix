@@ -84,6 +84,41 @@ async function getAllChannelIds() {
   return { ids, channels: dbChannels };
 }
 
+function cleanTitleForSEO(title, categoryName) {
+  if (!title) return 'Untitled Video';
+  let clean = title.replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm|3gp)$/i, '');
+  clean = clean.replace(/[\._\-]/g, ' ');
+  const ripTags = [
+    /\b\d{3,4}p\b/gi,
+    /\bx26[45]\b/gi,
+    /\bh26[45]\b/gi,
+    /\bhevc\b/gi,
+    /\bweb[- ]?dl\b/gi,
+    /\bweb[- ]?rip\b/gi,
+    /\bhd[- ]?rip\b/gi,
+    /\bvd[- ]?rip\b/gi,
+    /\bbluray\b/gi,
+    /\bbrrip\b/gi,
+    /\bdvd\b/gi,
+    /\bdvdrip\b/gi,
+    /\b[12]\d{3}\b/gi
+  ];
+  ripTags.forEach(regex => {
+    clean = clean.replace(regex, '');
+  });
+  clean = clean.replace(/\s+/g, ' ').trim();
+  clean = clean.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  if (categoryName && categoryName !== 'Uncategorized') {
+    const cleanCat = categoryName.replace(/Videos|Clips|Stories|Highlights/gi, '').trim();
+    if (clean && !clean.toLowerCase().includes(cleanCat.toLowerCase())) {
+      clean = `${clean} - ${categoryName}`;
+    }
+  }
+  return clean;
+}
+
 // ─── Core message handler ─────────────────────────────────────────────────────
 async function handleMessage(event) {
   const message = event.message;
@@ -137,12 +172,13 @@ async function handleMessage(event) {
       });
       await category.save();
     }
+    const cleanedTitle = cleanTitleForSEO(title, category.name);
     const movie = new Movie({
-      title, description, thumbnailUrl: imageUrl,
+      title: cleanedTitle, description, thumbnailUrl: imageUrl,
       telegramFileId, category: category._id, duration, sourceChannelId
     });
     await movie.save();
-    console.log(`[Auto-Save] ✅ "${title}" → "${categoryName}" (src: ${sourceChannelId || 'direct'})`);
+    console.log(`[Auto-Save] ✅ "${cleanedTitle}" → "${category.name}" (src: ${sourceChannelId || 'direct'})`);
   } catch (err) {
     console.error('[Auto-Save] Error saving to DB:', err.message);
   }
