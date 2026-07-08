@@ -7,7 +7,7 @@ exports.getHomeData = async (req, res) => {
   try {
     const sliders = await Slider.find().populate('movieId').sort('order').limit(5);
     
-    // Get categories with their movies populated
+    // Get categories that have at least 1 movie populated
     const categories = await Category.aggregate([
       {
         $lookup: {
@@ -15,6 +15,11 @@ exports.getHomeData = async (req, res) => {
           localField: '_id',
           foreignField: 'category',
           as: 'movies'
+        }
+      },
+      {
+        $match: {
+          "movies.0": { $exists: true }
         }
       }
     ]);
