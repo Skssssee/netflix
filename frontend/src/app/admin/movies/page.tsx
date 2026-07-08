@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import axios from 'axios';
 import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function AdminMovies() {
+function AdminMoviesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [movies, setMovies] = useState([]);
@@ -216,5 +216,17 @@ export default function AdminMovies() {
         </table>
       </div>
     </div>
+  );
+}
+
+export default function AdminMovies() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    }>
+      <AdminMoviesContent />
+    </Suspense>
   );
 }
