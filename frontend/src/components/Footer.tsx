@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { Globe, Share2, AtSign, Play } from 'lucide-react';
 
@@ -34,7 +35,7 @@ export default function Footer({ socials }: { socials?: any[] }) {
     },
   ];
 
-  const iconMap: Record<string, JSX.Element> = {
+  const iconMap: Record<string, React.ReactNode> = {
     youtube: <Play className="w-5 h-5" />,
     instagram: <AtSign className="w-5 h-5" />,
     twitter: <Share2 className="w-5 h-5" />,
