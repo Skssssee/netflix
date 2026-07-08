@@ -113,8 +113,8 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
             }
 
             // Apply adaptive limits to Hls.js instance
-            hls.minAutoLevel = minIndex;
-            hls.maxAutoLevel = maxIndex;
+            (hls as any).minAutoLevel = minIndex;
+            (hls as any).maxAutoLevel = maxIndex;
 
             // 2. Filter the UI qualities list to only show heights between 240 and 480
             const qualities = Array.from(
