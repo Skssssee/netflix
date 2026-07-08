@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-outfit: var(--font-outfit);
+  --font-poppins: var(--font-poppins);
+}
+
+@layer base {
+  body {
+    background-color: black;
+    color: white;
+  }
+}
+
+/* Hide scrollbar for movie rows */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
