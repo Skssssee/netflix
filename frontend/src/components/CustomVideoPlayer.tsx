@@ -174,11 +174,30 @@ export default function CustomVideoPlayer({ src, poster, title }: PlayerProps) {
           left: -8% !important;
           pointer-events: none !important;
         }
+        /* Force Plyr to take full size of container and prevent overflow */
+        .plyr {
+          height: 100% !important;
+          width: 100% !important;
+        }
+        .plyr__video-wrapper {
+          height: 100% !important;
+          width: 100% !important;
+        }
+        .plyr video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: contain !important;
+        }
         /* Make progress bar full width on top of controls (YouTube style) */
         .plyr__controls {
+          position: absolute !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          z-index: 10 !important;
+          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent) !important;
           flex-wrap: wrap !important;
           padding: 8px 12px !important;
-          position: relative !important;
         }
         .plyr__progress {
           flex-basis: 100% !important;
