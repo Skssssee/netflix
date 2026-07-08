@@ -170,15 +170,66 @@ async function handleMessage(event) {
 
 
 
+const fs = require('fs');
+const path = require('path');
 const bigInt = require('big-integer');
+
+const cacheDir = path.join(__dirname, '../video_cache');
+if (!fs.existsSync(cacheDir)) {
+  fs.mkdirSync(cacheDir, { recursive: true });
+}
+
+const messageCache = new Map();
+const activeDownloads = new Set();
+
+function triggerBackgroundDownload(messageId, message) {
+  const cacheFilePath = path.join(cacheDir, `${messageId}.mp4`);
+  if (activeDownloads.has(messageId) || fs.existsSync(cacheFilePath)) {
+    return;
+  }
+  
+  activeDownloads.add(messageId);
+  console.log(`[Cache Download] Starting background download for ${messageId}.mp4`);
+  
+  const writeStream = fs.createWriteStream(cacheFilePath + '.tmp');
+  
+  (async () => {
+    try {
+      for await (const chunk of client.iterDownload({
+        file: message.media,
+        requestSize: 2 * 1024 * 1024, // 2MB chunks for speed
+      })) {
+        writeStream.write(chunk);
+      }
+      writeStream.end();
+      
+      fs.renameSync(cacheFilePath + '.tmp', cacheFilePath);
+      console.log(`[Cache Download] Successfully cached ${messageId}.mp4 to disk`);
+    } catch (err) {
+      console.error(`[Cache Download] Failed for ${messageId}.mp4:`, err);
+      try {
+        writeStream.destroy();
+        if (fs.existsSync(cacheFilePath + '.tmp')) {
+          fs.unlinkSync(cacheFilePath + '.tmp');
+        }
+      } catch (e) {}
+    } finally {
+      activeDownloads.delete(messageId);
+    }
+  })();
+}
 
 // Helper: fetch a message by ID by trying all registered channels
 async function getMessageFromAnyChannel(messageId) {
+  if (messageCache.has(messageId)) {
+    return messageCache.get(messageId);
+  }
   const { ids: allChannelIds } = await getAllChannelIds();
   for (const chId of allChannelIds) {
     try {
       const messages = await client.getMessages(chId, { ids: [messageId] });
       if (messages && messages[0] && messages[0].media) {
+        messageCache.set(messageId, messages[0]);
         return messages[0];
       }
     } catch (e) { /* try next channel */ }
@@ -191,6 +242,39 @@ exports.streamVideo = async (req, res) => {
     const { telegramFileId } = req.params;
     const messageId = parseInt(telegramFileId, 10);
 
+    // 1. Check if video is cached on local disk
+    const cacheFilePath = path.join(cacheDir, `${messageId}.mp4`);
+    if (fs.existsSync(cacheFilePath)) {
+      console.log(`[Cache Hit] Streaming ${messageId}.mp4 directly from disk cache`);
+      const stat = fs.statSync(cacheFilePath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = (end - start) + 1;
+        
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunkSize,
+          'Content-Type': 'video/mp4',
+        });
+        
+        fs.createReadStream(cacheFilePath, { start, end }).pipe(res);
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': 'video/mp4',
+        });
+        fs.createReadStream(cacheFilePath).pipe(res);
+      }
+      return;
+    }
+
+    // 2. Fallback to fetching remotely from Telegram
     const message = await getMessageFromAnyChannel(messageId);
     if (!message || !message.media) {
       return res.status(404).send('Video not found or message has no media');
@@ -203,6 +287,9 @@ exports.streamVideo = async (req, res) => {
 
     const fileSize = Number(document.size);
     const range = req.headers.range;
+
+    // Trigger background download to cache the file for future plays
+    triggerBackgroundDownload(messageId, message);
 
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
